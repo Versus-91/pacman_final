@@ -158,9 +158,15 @@ class PacmanAgent:
             reward += 3
         if hit_ghost:
             reward -= 10
-        if info.ghost_distance in [1, 0] and not hit_ghost:
-            if self.check_cell(info, action, [-6]):
+        else:
+            if (
+                info.ghost_distance in [2, 3]
+                and self.prev_info.ghost_distance > info.ghost_distance
+            ):
                 print("close to ghost", ACTIONS[action])
+                reward -= 5
+        if info.ghost_distance in [1] and not hit_ghost:
+            if self.check_cell(info, action, [-6]):
                 reward -= 5
         if info.invalid_move and invalid_move:
             reward -= 8
@@ -369,7 +375,9 @@ class PacmanAgent:
                 for i in range(3):
                     if not done:
                         obs, self.score, done, info = self.game.step(action_t)
-                        if lives != info.lives or (info.invalid_move and self.check_cells(info, action)):
+                        if lives != info.lives or (
+                            info.invalid_move and self.check_cells(info, action)
+                        ):
                             break
                     else:
                         break
