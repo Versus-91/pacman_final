@@ -21,9 +21,7 @@ matplotlib.use("Agg")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_ACTIONS = 4
 BATCH_SIZE = 64
-SAVE_EPISODE_FREQ = 100
 GAMMA = 0.99
-MOMENTUM = 0.95
 sync_every = 500
 Experience = namedtuple(
     "Experience", field_names=["state", "action", "reward", "done", "new_state"]
@@ -180,9 +178,9 @@ class PacmanAgent:
         if done:
             if lives > 0:
                 print("won")
-                reward = 10
+                reward = 15
             else:
-                reward = -10
+                reward = -15
             return reward
         progress = int((info.collected_pellets / info.total_pellets) * 5)
         if progress > 0.5:
@@ -528,7 +526,7 @@ class PacmanAgent:
 
 if __name__ == "__main__":
     agent = PacmanAgent()
-    agent.load_model(name="225-73200", eval=False)
+    # agent.load_model(name="225-73200", eval=False)
     while True:
         agent.train()
         # agent.test()
