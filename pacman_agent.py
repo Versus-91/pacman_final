@@ -65,6 +65,7 @@ class PacmanAgent:
         self.score = 0
         self.episode = 0
         self.optimizer = optim.Adam(self.policy.parameters(), lr=self.lr)
+        self.prev_info = GameState()
         # self.scheduler = lr_scheduler.ExponentialLR(self.optimizer, gamma=0.8)
         self.losses = []
         self.epsilon = 1
@@ -142,7 +143,7 @@ class PacmanAgent:
             reward += 4
         if self.score - prev_score == 50:
             reward += 5
-        if self.score >= 200:
+        if self.score - prev_score >= 200:
             reward += 2
         if hit_ghost:
             reward -= 10
@@ -152,15 +153,15 @@ class PacmanAgent:
                 and self.prev_info.ghost_distance != -1
                 and self.prev_info.ghost_distance > info.ghost_distance
             ):
-                reward -= 7
+                reward -= 6
         if info.invalid_move and invalid_move:
             reward -= 5
-        if info.food_distance > self.prev_info.ghost_distance:
-            reward -= 1
-        elif info.food_distance > self.prev_info.ghost_distance:
-            reward += 1
+        if info.food_distance < self.prev_info.ghost_distance and self.prev_info.ghost_distance != -1:
+            reward += 2
         if action == REVERSED[self.last_action]:
-            reward += 1
+            reward -= 1
+        print("reward",reward)
+        reward -= 1
         return reward
 
     def write_matrix(self, matrix):
@@ -348,6 +349,7 @@ class PacmanAgent:
             reward_ = self.get_reward(
                 done, lives, hit_ghost, action_t, last_score, info
             )
+            self.prev_info = info
             reward_total += reward_
             last_score = self.score
             action_tensor = torch.tensor([[action_t]], device=device, dtype=torch.long)
@@ -429,7 +431,7 @@ class PacmanAgent:
 
 if __name__ == "__main__":
     agent = PacmanAgent()
-    # agent.load_model(name="2200-614557", eval=True)
+    agent.load_model(name="500-146374", eval=False)
     while True:
         agent.train()
         # agent.test()

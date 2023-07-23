@@ -169,7 +169,7 @@ class PacmanAgent:
             if self.check_cell(info, action, [-6]):
                 reward -= 5
         if info.invalid_move and invalid_move:
-            reward -= 8
+            reward -= 5
         reward -= 1
         if not got_pallet and self.check_cell(info, action, [3, 4]):
             reward += 2
