@@ -20,7 +20,7 @@ from run import GameState
 matplotlib.use("Agg")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_ACTIONS = 4
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 SAVE_EPISODE_FREQ = 100
 GAMMA = 0.99
 MOMENTUM = 0.95
@@ -32,7 +32,7 @@ Experience = namedtuple(
 REVERSED = {0: 1, 1: 0, 2: 3, 3: 2}
 EPS_START = 1.0
 EPS_END = 0.1
-MAX_EPISODES = 1500
+MAX_EPISODES = 1000
 ACTIONS = {
     0: "up",
     1: "down",
