@@ -129,7 +129,7 @@ class PacmanAgent:
                 reward += 1 + progress
             elif 4 in (n1, n2, n3, n4):
                 reward += 3 + progress
-        if action == REVERSED[self.last_action]:
+        if action == REVERSED[self.last_action] and not self.prev_info.invalid_move:
             reward -= 5
         reward = round(reward, 2)
         return reward
@@ -209,8 +209,8 @@ class PacmanAgent:
             and self.prev_info.ghost_distance != -1
         ):
             reward += 2
-        if action == REVERSED[self.last_action]:
-            reward -= 1
+        if action == REVERSED[self.last_action] and not self.prev_info.invalid_move:
+            reward -= 2
         reward -= 1
         return reward
 
@@ -287,7 +287,7 @@ class PacmanAgent:
         return channel_matrix
 
     def save_model(self, force=False):
-        if (self.episode % SAVE_EPISODE_FREQ == 0 and self.episode != 0) or force:
+        if (self.episode % 100 == 0 and self.episode != 0) or force:
             torch.save(
                 self.policy.state_dict(),
                 os.path.join(
@@ -414,9 +414,7 @@ class PacmanAgent:
                 for i in range(3):
                     if not done:
                         obs, self.score, done, info = self.game.step(action_t)
-                        if lives != info.lives or (
-                            info.invalid_move and self.check_cells(info, action)
-                        ):
+                        if lives != info.lives:
                             break
                     else:
                         break
