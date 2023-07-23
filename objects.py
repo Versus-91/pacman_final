@@ -99,7 +99,7 @@ class MovingObject(object):
         self.moving_method = None
         self.initialNode(node)
         self.image = None
-        self.basic_speed=120
+        self.basic_speed=100
         self.setSpeed(self.basic_speed)
 
     def setPosition(self):
