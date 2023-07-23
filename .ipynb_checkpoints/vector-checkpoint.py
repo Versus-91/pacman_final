@@ -1,0 +1,89 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "b0a4b37e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import math\n",
+    "class Vectors(object):\n",
+    "    def __init__(self, x=0, y=0):\n",
+    "        self.x = x\n",
+    "        self.y = y\n",
+    "        self.thresh = 0.000001 #\n",
+    "    def __add__(self, other):\n",
+    "        return Vectors(self.x + other.x, self.y + other.y)\n",
+    "\n",
+    "    def __sub__(self, other):\n",
+    "        return Vectors(self.x - other.x, self.y - other.y)\n",
+    "\n",
+    "    def __neg__(self):\n",
+    "        return Vectors(-self.x, -self.y)\n",
+    "\n",
+    "    def __mul__(self, scalar):\n",
+    "        return Vectors(self.x * scalar, self.y * scalar)\n",
+    "\n",
+    "    def __div__(self, scalar):\n",
+    "        if scalar != 0:\n",
+    "            return Vectors(self.x / float(scalar), self.y / float(scalar))\n",
+    "        return None\n",
+    "\n",
+    "    def __truediv__(self, scalar):\n",
+    "        return self.__div__(scalar)\n",
+    "    def __eq__(self, other):\n",
+    "        if abs(self.x - other.x) < self.thresh:\n",
+    "            if abs(self.y - other.y) < self.thresh:\n",
+    "                return True\n",
+    "        return False\n",
+    "    def __str__(self): #print results\n",
+    "        return \"<\"+str(self.x)+\", \"+str(self.y)+\">\"\n",
+    "    \n",
+    "    def magnitudeSquared(self): #rename\n",
+    "        return self.x**2 + self.y**2\n",
+    "\n",
+    "    def lenght(self): #magnitude\n",
+    "        return math.sqrt(self.magnitudeSquared())\n",
+    "    def copy(self):\n",
+    "        return Vectors(self.x, self.y)\n",
+    "\n",
+    "    def asTuple(self): #rename\n",
+    "        return self.x, self.y\n",
+    "\n",
+    "    def asInt(self):#rename\n",
+    "        return int(self.x), int(self.y)\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b728c5f0",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
