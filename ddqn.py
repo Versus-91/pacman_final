@@ -12,6 +12,7 @@ from game import GameWrapper
 import random
 import matplotlib
 import torch.optim.lr_scheduler as lr_scheduler
+from tensorboardX import SummaryWriter
 
 
 from run import GameState
@@ -64,6 +65,7 @@ class PacmanAgent:
         self.loop_action_counter = 0
         self.score = 0
         self.episode = 0
+        self.writer = SummaryWriter("logs")
         self.optimizer = optim.Adam(self.policy.parameters(), lr=self.lr)
         # self.scheduler = lr_scheduler.ExponentialLR(self.optimizer, gamma=0.8)
         self.losses = []
@@ -180,7 +182,7 @@ class PacmanAgent:
         criterion = torch.nn.MSELoss()
         best_actions = self.policy(state_batch).gather(1, action_batch)
         loss = criterion(best_actions, labels.detach().unsqueeze(1)).to(device)
-        self.losses.append(loss.item())
+        self.writer.add_scalar("loss", loss.item(), global_step=self.steps)
         self.optimizer.zero_grad()
         loss.backward()
         # for param in self.policy.parameters():
@@ -400,7 +402,9 @@ class PacmanAgent:
                 self.log()
                 self.rewards.append(self.score)
                 self.plot_rewards(items=self.rewards, avg=50)
-                # self.plot_rewards(items = self.losses,label="losses",name="losses.png", avg=50)
+                self.writer.add_scalar(
+                    "episode reward", self.score, global_step=self.episode
+                )
                 time.sleep(1)
                 self.game.restart()
                 torch.cuda.empty_cache()
