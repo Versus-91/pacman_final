@@ -97,7 +97,7 @@ class Bomb(Award):
         self.name = bomb
         self.color = 'red'
         #self.point = 500 + level*100
-        self.point = 0
+        self.point = 5
 
     def render(self, screen):
             if self.visible:
