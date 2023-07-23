@@ -417,6 +417,7 @@ class PacmanAgent:
                     break
         except:
           print("closed")
+          self.save_model(force=True)
           self.game.stop()
           self.writer.close()
 
