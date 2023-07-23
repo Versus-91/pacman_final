@@ -369,9 +369,7 @@ class PacmanAgent:
                 for i in range(3):
                     if not done:
                         obs, self.score, done, info = self.game.step(action_t)
-                        if lives != info.lives or (
-                            info.invalid_move and self.check_cells(info, action_t)
-                        ):
+                        if lives != info.lives:
                             break
                     else:
                         break

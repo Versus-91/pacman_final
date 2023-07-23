@@ -438,6 +438,11 @@ class GameController(object):
             elif ghost[1].mode.current_mode is scared_mode:
                 if self.state[y][x] != 5:
                     self.state[y][x] = 6
+        if self.bomb:
+            x = int(round(self.bomb.position.x / 16))
+            y = int(round(self.bomb.position.y / 16))
+            if self.state[y][x] != 5:
+                    self.state[y][x] = 7
         # dist = math.sqrt((self.pacman_prev.x - x)**2 + (self.pacman_prev.y - x)**2)
         # if abs(self.pacman_prev.x - x) >= 16 or abs(self.pacman_prev.y - y) >= 16:
         #     self.pacman_prev = self.pacman.position
