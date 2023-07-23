@@ -443,7 +443,7 @@ class GameController(object):
         info.frame = self.get_frame()
         info.image = pygame.surfarray.array3d(pygame.display.get_surface())
         # info.state = self.get_state()
-        if not self.pacman.validDirection(action):
+        if not self.pacman.allowedDirection(action):
             invalid_move = True
         delta_t = self.clock.tick(120) / 1000.0
         if self.counter < 19:

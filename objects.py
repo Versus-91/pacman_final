@@ -280,10 +280,10 @@ class Pacman(MovingObject):
         self.alive = False
         self.direction = stop_indicator
 
-    def update(self, delta_t):
+    def update(self, delta_t,action = None):
         self.position += self.directions[self.direction] * self.speed * delta_t
-        direction = self.getInput()
-        if self.passedTarget():
+        direction = self.getInput() if action is None else action
+        if self.passedTarget(): 
             self.node = self.target
             if self.node.neighbors[in_portal] is not None:
                 self.node = self.node.neighbors[in_portal]
