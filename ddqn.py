@@ -344,77 +344,82 @@ class PacmanAgent:
         # if self.episode >= MAX_EPISODES:
         #     self.save_model(force=True)
         #     exit()
-        self.save_model()
-        obs = self.game.start()
-        self.episode += 1
-        random_action = random.choice([0, 1, 2, 3])
-        # obs, self.score, done, info = self.game.step(random_action)
-        # state = self.process_state(obs)
-        # state = torch.tensor(obs).float().to(device)
-        for i in range(6):
-            obs, self.score, done, info = self.game.step(random_action)
-            self.buffer.append(info.frame)
-        state = self.process_state(self.buffer)
-        last_score = 0
-        lives = 3
-        reward_total = 0
-        while True:
-            action = self.act(state)
-            action_t = action.item()
-            for i in range(4):
-                if not done:
-                    obs, self.score, done, info = self.game.step(action_t)
-                    if lives != info.lives:
+        try:
+            self.save_model()
+            obs = self.game.start()
+            self.episode += 1
+            random_action = random.choice([0, 1, 2, 3])
+            # obs, self.score, done, info = self.game.step(random_action)
+            # state = self.process_state(obs)
+            # state = torch.tensor(obs).float().to(device)
+            for i in range(6):
+                obs, self.score, done, info = self.game.step(random_action)
+                self.buffer.append(info.frame)
+            state = self.process_state(self.buffer)
+            last_score = 0
+            lives = 3
+            reward_total = 0
+            while True:
+                action = self.act(state)
+                action_t = action.item()
+                for i in range(4):
+                    if not done:
+                        obs, self.score, done, info = self.game.step(action_t)
+                        if lives != info.lives:
+                            break
+                    else:
                         break
-                else:
+                self.buffer.append(info.frame)
+                hit_ghost = False
+                if lives != info.lives:
+                    # self.write_matrix(self.buffer)
+                    hit_ghost = True
+                    lives -= 1
+                    if not done:
+                        for i in range(5):
+                            _, _, _, _ = self.game.step(action_t)
+                # next_state = torch.tensor(obs).float().to(device)
+                next_state = self.process_state(self.buffer)
+                reward_ = self.get_reward(
+                    done, lives, hit_ghost, action_t, last_score, info
+                )
+                self.prev_info = info
+                reward_total += reward_
+                last_score = self.score
+                action_tensor = torch.tensor([[action_t]], device=device, dtype=torch.long)
+                self.memory.append(
+                    state,
+                    action_tensor,
+                    torch.tensor([reward_], device=device),
+                    next_state,
+                    done,
+                )
+                state = next_state
+                self.learn()
+                if not info.invalid_move and not self.check_cells(info,action):
+                    self.last_action = action_t
+                # if self.steps % 100000 == 0:
+                #     self.scheduler.step()
+                if done:
+                    self.epsilon = max(
+                        EPS_END,
+                        EPS_START - (EPS_START - EPS_END) * (self.episode) / MAX_EPISODES,
+                    )
+                    self.log()
+                    self.rewards.append(self.score)
+                    self.plot_rewards(items=self.rewards, avg=50)
+                    self.writer.add_scalar(
+                        "episode reward", self.score, global_step=self.episode
+                    )
+                    time.sleep(1)
+                    self.game.restart()
+                    torch.cuda.empty_cache()
                     break
-            self.buffer.append(info.frame)
-            hit_ghost = False
-            if lives != info.lives:
-                # self.write_matrix(self.buffer)
-                hit_ghost = True
-                lives -= 1
-                if not done:
-                    for i in range(3):
-                        _, _, _, _ = self.game.step(action_t)
-            # next_state = torch.tensor(obs).float().to(device)
-            next_state = self.process_state(self.buffer)
+        except:
+          print("closed")
+          self.game.stop()
+          self.writer.close()
 
-            reward_ = self.get_reward(
-                done, lives, hit_ghost, action_t, last_score, info
-            )
-            self.prev_info = info
-            reward_total += reward_
-            last_score = self.score
-            action_tensor = torch.tensor([[action_t]], device=device, dtype=torch.long)
-            self.memory.append(
-                state,
-                action_tensor,
-                torch.tensor([reward_], device=device),
-                next_state,
-                done,
-            )
-            state = next_state
-            self.learn()
-            if not info.invalid_move:
-                self.last_action = action_t
-            # if self.steps % 100000 == 0:
-            #     self.scheduler.step()
-            if done:
-                self.epsilon = max(
-                    EPS_END,
-                    EPS_START - (EPS_START - EPS_END) * (self.episode) / MAX_EPISODES,
-                )
-                self.log()
-                self.rewards.append(self.score)
-                self.plot_rewards(items=self.rewards, avg=50)
-                self.writer.add_scalar(
-                    "episode reward", self.score, global_step=self.episode
-                )
-                time.sleep(1)
-                self.game.restart()
-                torch.cuda.empty_cache()
-                break
 
     def log(self):
         current_lr = self.optimizer.param_groups[0]["lr"]

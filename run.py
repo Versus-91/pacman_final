@@ -364,7 +364,8 @@ class GameController(object):
 
     def updateScore(self, points):
         self.score += points
-
+    def close(self):
+        exit()
     def update(self):  # remove time later !
         delta_t = self.clock.tick(120) / 1000.0
         if self.counter < 19:  # spped of eating my pacman

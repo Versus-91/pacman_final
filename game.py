@@ -50,7 +50,8 @@ class GameWrapper:
         return self.controller.get_invalid_action(action)
     def update(self):
         self.controller.update()
-
+    def stop(self):
+        self.controller.close()
     def process_image(self, obs):
         # image = cv2.cvtColor(obs, cv2.COLOR_BGR2GRAY)
         # image = cv2.resize(image, (210, 160))
