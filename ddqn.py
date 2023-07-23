@@ -133,6 +133,7 @@ class PacmanAgent:
     def get_reward(self, done, lives, hit_ghost, action, prev_score, info: GameState):
         reward = 0
         invalid_move = self.check_cells(info, action)
+        got_pallet = False
         if done:
             if lives > 0:
                 print("won")
@@ -142,8 +143,10 @@ class PacmanAgent:
             return reward
         progress = int((info.collected_pellets / info.total_pellets) * 5)
         if self.score - prev_score == 10:
+            got_pallet = True
             reward += 4
         if self.score - prev_score == 50:
+            got_pallet = True
             reward += 5
         if self.score >= 200:
             reward += 3
@@ -157,6 +160,9 @@ class PacmanAgent:
         if info.invalid_move and invalid_move:
             reward -= 5
         reward -= 1
+        if not got_pallet and self.check_cell(info, action, [3, 4]):
+            print("got food")
+            reward += 2
         return reward
 
     def write_matrix(self, matrix):
@@ -355,7 +361,7 @@ class PacmanAgent:
         while True:
             action = self.act(state)
             action_t = action.item()
-            for i in range(5):
+            for i in range(4):
                 if not done:
                     obs, self.score, done, info = self.game.step(action_t)
                     if lives != info.lives:

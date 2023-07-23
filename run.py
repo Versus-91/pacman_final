@@ -401,14 +401,14 @@ class GameController(object):
 
     def get_frame(self):
         raw_maze_data = []
-        with open("map.txt", "r") as f:
+        with open(self.level_map, 'r') as f:
             for line in f:
                 raw_maze_data.append(line.split())
         raw_maze_data = np.array(raw_maze_data)
         self.state = np.zeros(raw_maze_data.shape)
         for idx, values in enumerate(raw_maze_data):
             for id, value in enumerate(values):
-                if value in ["9", "=", "X"]:
+                if value in ['9', '=', 'X','3','4','5','6','7','8']:
                     self.state[idx][id] = 1
         # for idx, pellet in enumerate(self.eatenPellets):
         #     x = int(pellet.position.x / 16)
@@ -421,20 +421,18 @@ class GameController(object):
                 self.state[y][x] = 3
             else:
                 self.state[y][x] = 4
-        x = int(round(self.pacman.position.x / 16))
-        y = int(round(self.pacman.position.y / 16))
-        self.state[y][x] = 5
-        assert self.state[y][x] != 1
+        pacman_x = int(round(self.pacman.position.x / 16))
+        pacman_y = int(round(self.pacman.position.y / 16))
+        self.state[pacman_y][pacman_x] = 5
+        #assert self.state[y][x] != 1
         for ghost in enumerate(self.ghosts):
             x = int(round(ghost[1].position.x / 16))
             y = int(round(ghost[1].position.y / 16))
-            if (
-                ghost[1].mode.current_mode is not FREIGHT
-                and ghost[1].mode.current_mode is not SPAWN
-            ):
+            if ghost[1].mode.current_mode is not scared_mode and ghost[1].mode.current_mode is not respawning_mode:
                 self.state[y][x] = -6
-            else:
-                self.state[y][x] = 6
+            elif ghost[1].mode.current_mode is scared_mode:
+                if self.state[y][x] != 5:
+                    self.state[y][x] = 6
         # dist = math.sqrt((self.pacman_prev.x - x)**2 + (self.pacman_prev.y - x)**2)
         # if abs(self.pacman_prev.x - x) >= 16 or abs(self.pacman_prev.y - y) >= 16:
         #     self.pacman_prev = self.pacman.position
@@ -451,7 +449,7 @@ class GameController(object):
         lives = self.lives
         info.frame = self.get_frame()
         info.image = pygame.surfarray.array3d(pygame.display.get_surface())
-        info.state = self.get_state()
+        #info.state = self.get_state()
         if not self.pacman.validDirection(action):
             invalid_move = True
         delta_t = self.clock.tick(120) / 1000.0
@@ -479,11 +477,11 @@ class GameController(object):
 
         self.ghosts.update(delta_t)
         self.checkGhostEvents()
+        self.render()
         if lives == self.lives:
             info.frame = self.get_frame()
-            info.state = self.get_state()
+            #info.state = self.get_state()
             info.image = pygame.surfarray.array3d(pygame.display.get_surface())
-        info = GameState()
         info.lives = self.lives
         done = self.lost
         row_indices, _ = np.where(info.frame == 5)
