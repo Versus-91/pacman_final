@@ -158,12 +158,15 @@ class PacmanAgent:
             progress = 0
         if self.score - prev_score == 10 or self.score - prev_score == 50:
             reward += 4 + progress
-        if self.score >= 200:
+        elif self.score - prev_score % 200 == 0:
+            reward += 1
+        elif self.score - prev_score != 0:
+            print("anomally")
             reward += 1
         if hit_ghost:
             reward -= 10
         if info.invalid_move:
-            reward -=3
+            reward -= 3
         reward -= 1
         return reward
 
@@ -358,7 +361,7 @@ class PacmanAgent:
                         break
                 hit_ghost = False
                 if lives != info.lives:
-                    self.plot()
+                    # self.plot()
                     hit_ghost = True
                     lives -= 1
                 self.images.append(self.processs_image(info.image))
@@ -380,7 +383,7 @@ class PacmanAgent:
                     self.optimize_model()
                 if not info.invalid_move:
                     self.last_action = action_t
-                if done or lives <0:
+                if done or lives < 0:
                     self.epsilon = max(
                         EPS_END,
                         EPS_START - (EPS_START - EPS_END) * self.steps / MAX_STEP,
