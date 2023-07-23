@@ -136,10 +136,47 @@ class PacmanAgent:
         reward = round(reward, 2)
         return reward
 
+    # def get_reward(self, done, lives, hit_ghost, action, prev_score, info: GameState):
+    #     reward = 0
+    #     invalid_move = self.check_cells(info, action)
+    #     got_pallet = False
+    #     if done:
+    #         if lives > 0:
+    #             print("won")
+    #             reward = 10
+    #         else:
+    #             reward = -10
+    #         return reward
+    #     progress = int((info.collected_pellets / info.total_pellets) * 5)
+    #     if self.score - prev_score == 10:
+    #         got_pallet = True
+    #         reward += 4
+    #     if self.score - prev_score == 50:
+    #         got_pallet = True
+    #         reward += 5
+    #     if self.score - prev_score >= 200:
+    #         reward += 3
+    #     if hit_ghost:
+    #         reward -= 10
+    #     else:
+    #         if (
+    #             info.ghost_distance in [2, 3]
+    #             and self.prev_info.ghost_distance > info.ghost_distance
+    #         ):
+    #             print("close to ghost", ACTIONS[action])
+    #             reward -= 5
+    #     if info.ghost_distance in [1] and not hit_ghost:
+    #         if self.check_cell(info, action, [-6]):
+    #             reward -= 5
+    #     if info.invalid_move and invalid_move:
+    #         reward -= 5
+    #     reward -= 1
+    #     if not got_pallet and self.check_cell(info, action, [3, 4]):
+    #         reward += 2
+    #     return reward
     def get_reward(self, done, lives, hit_ghost, action, prev_score, info: GameState):
         reward = 0
         invalid_move = self.check_cells(info, action)
-        got_pallet = False
         if done:
             if lives > 0:
                 print("won")
@@ -148,31 +185,35 @@ class PacmanAgent:
                 reward = -10
             return reward
         progress = int((info.collected_pellets / info.total_pellets) * 5)
+        if progress > 0.5:
+            progress = 3
+        else:
+            progress = 0
         if self.score - prev_score == 10:
-            got_pallet = True
-            reward += 4
+            reward += 4 + progress
         if self.score - prev_score == 50:
-            got_pallet = True
-            reward += 5
+            reward += 5 + progress
         if self.score - prev_score >= 200:
-            reward += 3
+            reward += 2
         if hit_ghost:
             reward -= 10
         else:
             if (
-                info.ghost_distance in [2, 3]
+                info.ghost_distance in [2]
+                and self.prev_info.ghost_distance != -1
                 and self.prev_info.ghost_distance > info.ghost_distance
             ):
-                print("close to ghost", ACTIONS[action])
-                reward -= 5
-        if info.ghost_distance in [1] and not hit_ghost:
-            if self.check_cell(info, action, [-6]):
                 reward -= 5
         if info.invalid_move and invalid_move:
             reward -= 5
-        reward -= 1
-        if not got_pallet and self.check_cell(info, action, [3, 4]):
+        if (
+            info.food_distance < self.prev_info.ghost_distance
+            and self.prev_info.ghost_distance != -1
+        ):
             reward += 2
+        if action == REVERSED[self.last_action]:
+            reward -= 1
+        reward -= 1
         return reward
 
     def write_matrix(self, matrix):
@@ -422,7 +463,7 @@ class PacmanAgent:
                     )
                     self.log()
                     self.rewards.append(self.score)
-                    #self.plot_rewards(items=self.rewards, avg=50)
+                    # self.plot_rewards(items=self.rewards, avg=50)
                     self.writer.add_scalar(
                         "episode reward", self.score, global_step=self.episode
                     )
