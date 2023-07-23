@@ -153,7 +153,7 @@ class PacmanAgent:
             if info.ghost_distance in [1, 0]:
                 if self.check_cell(info, action, [-6]):
                     print("close to ghost")
-                    reward -= 10
+                    reward -= 5
         if info.invalid_move and invalid_move:
             reward -= 5
         reward -= 1
