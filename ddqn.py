@@ -203,6 +203,7 @@ class PacmanAgent:
             ):
                 reward -= 5
         if info.invalid_move and invalid_move:
+            print("invalid move", ACTIONS[action])
             reward -= 5
         if (
             info.food_distance < self.prev_info.ghost_distance
@@ -233,11 +234,12 @@ class PacmanAgent:
             best_actions = self.policy(new_state_batch).argmax(1).unsqueeze(1)
             next_q_values = self.target(new_state_batch).gather(1, best_actions)
         labels = reward_batch + GAMMA * (1 - dones) * next_q_values.squeeze()
-        # criterion = torch.nn.SmoothL1Loss()
-        criterion = torch.nn.MSELoss()
+        criterion = torch.nn.SmoothL1Loss()
+        # criterion = torch.nn.MSELoss()
         best_actions = self.policy(state_batch).gather(1, action_batch)
         loss = criterion(best_actions, labels.detach().unsqueeze(1)).to(device)
-        self.writer.add_scalar("loss", loss.item(), global_step=self.steps)
+        if self.steps % 50 == 0:
+            self.writer.add_scalar("loss", loss.item(), global_step=self.steps / 50)
         self.optimizer.zero_grad()
         loss.backward()
         # for param in self.policy.parameters():

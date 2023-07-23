@@ -220,7 +220,7 @@ class Dots(object):
         self.name = dot
         self.position = Vectors(column*cellw, row*cellh)
         self.color = WHITE
-        self.radius = int(4 * cellw / 16)
+        self.radius = int(3 * cellw / 16)
         self.collideRadius = int(4 * cellh / 16)
         self.points = 10
         self.visible = True
@@ -240,10 +240,11 @@ class Powerdots(Dots):
         self.timer= 0
         
     def update(self, dt):
-        self.timer += dt
-        if self.timer >= self.flashTime:
-            self.visible = not self.visible
-            self.timer = 0
+        self.visible = True
+        # self.timer += dt
+        # if self.timer >= self.flashTime:
+        #     self.visible = not self.visible
+        #     self.timer = 0
             
 class PelletGroup(object):
     def __init__(self, pelletfile):

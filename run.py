@@ -40,7 +40,7 @@ funky = 17
 
 gold = 99
 bomb = 98
-shield = 97
+teleport = 97
 
 import numpy as np
 import pygame
@@ -52,7 +52,7 @@ from nodes import NodeGroup, PelletGroup
 
 # from ghost import GhostGroup
 from vector import Vectors
-from awards import Gold, Bomb, Shield
+from awards import Gold, Bomb, Teleport
 
 
 from objects import Pacman, GhostGroup
@@ -68,23 +68,6 @@ for i in range(1, 5):
     )
 
 
-class GameState:
-    def __init__(self):
-        self.lives = 0
-        self.frame = []
-        self.state = []
-        self.invalid_move = False
-        self.total_pellets = 0
-        self.collected_pellets = 0
-        self.food_distance = -1
-        self.powerup_distance = -1
-        self.ghost_distance = -1
-        self.scared_ghost_distance = -1
-        self.image = []
-        self.x = 0
-        self.y = 0
-
-
 # Music/Sounds
 
 pygame.mixer.init()
@@ -94,6 +77,14 @@ eatghost_sound = pygame.mixer.Sound("assets/pacman_eatghost.wav")
 eatdot_sound = pygame.mixer.Sound("assets/pacman_chomp.wav")
 death_sound = pygame.mixer.Sound("assets/pacman_death.wav")
 powerdot_sound = pygame.mixer.Sound("assets/pacman_intermission.wav")
+
+
+class GameState:
+    def __init__(self):
+        self.lives = 0
+        self.invalid_move = False
+        self.total_pellets = 0
+        self.collected_pellets = 0
 
 
 class GameController(object):
@@ -117,8 +108,8 @@ class GameController(object):
         self.gold_node = None
         self.bomb = None
         self.bomb_node = None
-        self.shield = None
-        self.shield_node = None
+        self.teleport = None
+        self.teleport_node = None
 
         self.font = pygame.font.Font("freesansbold.ttf", 20)
         self.newfont = pygame.font.Font("assets/font.ttf", 50)
@@ -258,7 +249,7 @@ class GameController(object):
         pygame.mixer.music.play(-1)
         self.gold = None
         self.bomb = None
-        self.shield = None
+        self.teleport = None
         self.level_up = False
         self.level_map = f"levels/{self.level}.txt"
         self.nodes = NodeGroup(self.level_map)
@@ -285,11 +276,12 @@ class GameController(object):
         self.ghosts.sue.initialNode(self.nodes.getNodeFromTiles(4 + 11.5, 3 + 14))
         if self.level == 2:
             self.ghosts.funky.initialNode(self.nodes.getNodeFromTiles(2 + 11.5, 3 + 14))
+        self.ghosts.blinky.initialNode(self.nodes.getNodeFromTiles(2 + 11.5, 3 + 14))
 
         self.eatenPellets = []
         self.gold_initial_position = (9, 20)
         self.bomb_initial_position = (9, 14)
-        self.shield_initial_position = (15, 26)
+        self.teleport_initial_position = (15, 26)
 
         self.ghosts.setRespawnTarget(self.nodes.getNodeFromTiles(2 + 11.5, 3 + 14))
 
@@ -309,7 +301,7 @@ class GameController(object):
     def resetLevel(self, level):
         self.gold = None
         self.bomb = None
-        self.shield = None
+        self.teleport = None
 
         self.level = level
         # self.pacman = mypacman(self.nodes.getNodeFromTiles(15, 26))
@@ -318,11 +310,11 @@ class GameController(object):
 
     def setBackground(self):
         self.background = pygame.surface.Surface(screen).convert()
-        self.background.fill("black")
+        self.background.fill("gray10")
 
     def startGame(self):
         # music_start.play()
-        # pygame.mixer.music.play(-1)
+        pygame.mixer.music.play(-1)
         self.setBackground()
 
         self.nodes = NodeGroup(self.level_map)
@@ -336,7 +328,7 @@ class GameController(object):
 
         self.ghosts = GhostGroup(self.nodes.getStartTempNode(), self.pacman)
 
-        self.ghosts.blinky.initialNode(self.nodes.getNodeFromTiles(2 + 11.5, 0 + 14))
+        self.ghosts.blinky.initialNode(self.nodes.getNodeFromTiles(2 + 11.5, 3 + 14))
         self.ghosts.pinky.initialNode(self.nodes.getNodeFromTiles(2 + 11.5, 3 + 14))
         self.ghosts.inky.initialNode(self.nodes.getNodeFromTiles(0 + 11.5, 3 + 14))
         self.ghosts.clyde.initialNode(self.nodes.getNodeFromTiles(4 + 11.5, 3 + 14))
@@ -344,7 +336,7 @@ class GameController(object):
 
         self.gold_initial_position = (9, 20)
         self.bomb_initial_position = (9, 14)
-        self.shield_initial_position = (15, 26)
+        self.teleport_initial_position = (15, 26)
 
         self.ghosts.setRespawnTarget(self.nodes.getNodeFromTiles(2 + 11.5, 3 + 14))
 
@@ -353,20 +345,15 @@ class GameController(object):
         self.nodes.denyHomeAccessList(self.ghosts)
         self.nodes.denyAccessList(2 + 11.5, 3 + 14, left, self.ghosts)
         self.nodes.denyAccessList(2 + 11.5, 3 + 14, right, self.ghosts)
-
         self.nodes.denyAccessList(12, 14, up, self.ghosts)
         self.nodes.denyAccessList(15, 14, up, self.ghosts)
         self.nodes.denyAccessList(12, 26, up, self.ghosts)
         self.nodes.denyAccessList(15, 26, up, self.ghosts)
-
         self.ghosts.inky.startNode.denyAccess(right, self.ghosts.inky)
         self.ghosts.clyde.startNode.denyAccess(left, self.ghosts.clyde)
-
+        self.ghosts.pinky.startNode.denyAccess(right, self.ghosts.pinky)
     def updateScore(self, points):
         self.score += points
-
-    def close(self):
-        exit()
 
     def update(self):  # remove time later !
         delta_t = self.clock.tick(120) / 1000.0
@@ -374,12 +361,10 @@ class GameController(object):
             self.counter += 1
         else:
             self.counter = 0
-
-        self.pacman.update(delta_t)  # remove time?
+        self.pacman.update(delta_t)  # remove delta_t?
         self.pellets.update(delta_t)
         self.checkEvents()
         self.eatDots()
-
         if self.gold is not None:
             self.gold.update(delta_t)
         self.gettingGold()
@@ -388,67 +373,67 @@ class GameController(object):
             self.bomb.update(delta_t)
         self.gettingBomb()
 
-        # if self.shield is not None:
-        #     self.shield.update(delta_t)
-        # self.gettingShield()
-
+        if self.teleport is not None:
+            self.teleport.update(delta_t)
+        self.gettingTeleport()
         self.ghosts.update(delta_t)
         self.checkGhostEvents()
         self.render()
         self.get_frame()
-
         # print(self.level, "level")
         # print(self.ghosts.blinky.mode.current_mode,self.ghosts.inky.mode.current_mode,self.ghosts.pinky.mode.current_mode,self.ghosts.clyde.mode.current_mode)
         # print(self.pacman.position==game.ghosts.blinky.pacman.position,game.pacman.alive)
+        # print(self.pacman.position)
+        # print(self.pacman.target)
 
     def get_frame(self):
-        raw_maze_data = []
-        with open(self.level_map, "r") as f:
-            for line in f:
-                raw_maze_data.append(line.split())
-        raw_maze_data = np.array(raw_maze_data)
-        self.state = np.zeros(raw_maze_data.shape)
-        for idx, values in enumerate(raw_maze_data):
-            for id, value in enumerate(values):
-                if value in ["9", "=", "X", "3", "4", "5", "6", "7", "8"]:
-                    self.state[idx][id] = 1
-        # for idx, pellet in enumerate(self.eatenPellets):
-        #     x = int(pellet.position.x / 16)
-        #     y = int(pellet.position.y / 16)
-        #     self.state[y][x] = 2
-        for idx, pellet in enumerate(self.pellets.pelletList):
-            x = int(pellet.position.x / 16)
-            y = int(pellet.position.y / 16)
-            if pellet.name == 3:
-                self.state[y][x] = 3
-            else:
-                self.state[y][x] = 4
-        pacman_x = int(round(self.pacman.position.x / 16))
-        pacman_y = int(round(self.pacman.position.y / 16))
-        self.state[pacman_y][pacman_x] = 5
-        # assert self.state[y][x] != 1
-        for ghost in enumerate(self.ghosts):
-            x = int(round(ghost[1].position.x / 16))
-            y = int(round(ghost[1].position.y / 16))
-            if (
-                ghost[1].mode.current_mode is not scared_mode
-                and ghost[1].mode.current_mode is not respawning_mode
-            ):
-                self.state[y][x] = -6
-            elif ghost[1].mode.current_mode is scared_mode:
+            raw_maze_data = []
+            with open(self.level_map, "r") as f:
+                for line in f:
+                    raw_maze_data.append(line.split())
+            raw_maze_data = np.array(raw_maze_data)
+            self.state = np.zeros(raw_maze_data.shape)
+            for idx, values in enumerate(raw_maze_data):
+                for id, value in enumerate(values):
+                    if value in ["9", "=", "X", "3", "4", "5", "6", "7", "8"]:
+                        self.state[idx][id] = 1
+            # for idx, pellet in enumerate(self.eatenPellets):
+            #     x = int(pellet.position.x / 16)
+            #     y = int(pellet.position.y / 16)
+            #     self.state[y][x] = 2
+            for idx, pellet in enumerate(self.pellets.pelletList):
+                x = int(pellet.position.x / 16)
+                y = int(pellet.position.y / 16)
+                if pellet.name == 3:
+                    self.state[y][x] = 3
+                else:
+                    self.state[y][x] = 4
+            pacman_x = int(round(self.pacman.position.x / 16))
+            pacman_y = int(round(self.pacman.position.y / 16))
+            self.state[pacman_y][pacman_x] = 5
+            # assert self.state[y][x] != 1
+            for ghost in enumerate(self.ghosts):
+                x = int(round(ghost[1].position.x / 16))
+                y = int(round(ghost[1].position.y / 16))
+                if (
+                    ghost[1].mode.current_mode is not scared_mode
+                    and ghost[1].mode.current_mode is not respawning_mode
+                ):
+                    self.state[y][x] = -6
+                elif ghost[1].mode.current_mode is scared_mode:
+                    if self.state[y][x] != 5:
+                        self.state[y][x] = 6
+            if self.bomb:
+                x = int(round(self.bomb.position.x / 16))
+                y = int(round(self.bomb.position.y / 16))
                 if self.state[y][x] != 5:
-                    self.state[y][x] = 6
-        if self.bomb:
-            x = int(round(self.bomb.position.x / 16))
-            y = int(round(self.bomb.position.y / 16))
-            if self.state[y][x] != 5:
-                self.state[y][x] = 7
-        # dist = math.sqrt((self.pacman_prev.x - x)**2 + (self.pacman_prev.y - x)**2)
-        # if abs(self.pacman_prev.x - x) >= 16 or abs(self.pacman_prev.y - y) >= 16:
-        #     self.pacman_prev = self.pacman.position
-        #     print("move",self.pacman.position)
+                    self.state[y][x] = 7
+            # dist = math.sqrt((self.pacman_prev.x - x)**2 + (self.pacman_prev.y - x)**2)
+            # if abs(self.pacman_prev.x - x) >= 16 or abs(self.pacman_prev.y - y) >= 16:
+            #     self.pacman_prev = self.pacman.position
+            #     print("move",self.pacman.position)
 
-        return self.state[3:34, :]
+            return self.state[3:34, :]
 
     def perform_action(self, action):
         state = None
@@ -501,14 +486,14 @@ class GameController(object):
         dot = self.pacman.collectObjectives(self.pellets.pelletList)
         # dot = self.pacman.eatDots(self.pellets.pelletList)
         if dot:
-            # eatdot_sound.play()
+            eatdot_sound.play()
             self.pellets.numEaten += 1
-            self.updateScore(dot.points)
-            self.pellets.pelletList.remove(dot)
             if self.pellets.numEaten == 20:
                 self.ghosts.inky.startNode.allowAccess(right, self.ghosts.inky)
             if self.pellets.numEaten == 60:
                 self.ghosts.clyde.startNode.allowAccess(left, self.ghosts.clyde)
+            self.updateScore(dot.points)
+            self.pellets.pelletList.remove(dot)
             # print("remain dots",len(self.pellets.pelletList))
             if len(self.pellets.pelletList) < 5:
                 self.ghosts.blinky.gets_angry(self.counter)
@@ -530,7 +515,7 @@ class GameController(object):
         for ghost in self.ghosts:
             if self.pacman.collideGhost(ghost):
                 if ghost.mode.current_mode is FREIGHT:
-                    # eatghost_sound.play()
+                    eatghost_sound.play()
                     # ghost.visible = False
                     # self.ghosts.pinky.visible=False
                     self.updateScore(ghost.point)
@@ -539,18 +524,18 @@ class GameController(object):
                     ghost.startRespawning()
                 elif ghost.mode.current_mode is not SPAWN:
                     if self.pacman.alive:
-                        # death_sound.play()
+                        death_sound.play()
                         self.lives -= 1
                         self.pacman.die()
                         self.ghosts.hide()
                         if self.lives <= 0:
-                            self.lost = True
-                            # self.restartGame()
+                            # self.lost=True
+                            self.restartGame()
                         else:
                             self.resetLevel(self.level)
 
     def gettingGold(self):
-        if self.pellets.numEaten == 30:
+        if self.pellets.numEaten == 20:
             if self.gold is None:
                 self.gold = Gold(self.nodes.getNodeFromTiles(9, 20), self.level)
         if self.gold is not None:
@@ -571,47 +556,58 @@ class GameController(object):
         return nearest_ghost
 
     def gettingBomb(self):
-        if self.pellets.numEaten == 50:
+        if self.pellets.numEaten == 70:
             if self.bomb is None:
-                self.bomb = Bomb(self.nodes.getNodeFromTiles(9, 14), self.level)
-
+                self.bomb = Bomb(self.nodes.getNodeFromTiles(9, 20), self.level)
         if self.bomb is not None:
             if self.pacman.collideCheck(self.bomb):
                 ghost = self.nearestGhost()
-                # print(ghost.color,"there")
-                # ghost.visible = False
-                # self.updateScore(ghost.points)
                 self.nodes.allowHomeAccess(ghost)
                 ghost.mode.current_mode = SPAWN
                 ghost.startRespawning()
-
-                # self.updateScore(self.bomb.point)
                 self.bomb = None
             elif self.bomb.destroy:
                 self.bomb = None
 
-    def gettingShield(self):
-        if self.pellets.numEaten == 5:
-            if self.shield is None:
-                self.shield = Shield(self.nodes.getNodeFromTiles(15, 26), self.level)
-        if self.shield is not None:
-            if self.pacman.collideCheck(self.shield):
-                for ghost in self.ghosts:
-                    # if (cellw * 1)**2 < (self.pacman.position - ghost.position).magnitudeSquared():
+    # def gettingTeleport(self):
+    #     if self.pellets.numEaten==5:
+    #         if self.teleport is None:
+    #             self.teleport = Teleport(self.nodes.getNodeFromTiles(15, 26), self.level)
+    #     if self.teleport is not None:
+    #         if self.pacman.collideCheck(self.teleport):
+    #             new_place = self.nodes.getNodeFromTiles(1, 4)
+    #             self.pacman.teleport(new_place)
+    #             self.teleport = None
+    #         elif self.teleport.destroy:
+    #             self.teleport = None
 
-                    if 100 > Vectors.lenght(self.pacman.position - ghost.position):
-                        # if 20 < Vectors.lenght(self.pacman.position - ghost.position):
-                        # ghost.mode.current_mode=scattering_mode
-                        # ghost.scatter()
-                        # ghost.goal=self.pacman.position*(-1)
-                        ghost.mode.setScaredMode()
-                        # ghost.startScaring()
-                        print(ghost.name, "name")
-                        # ghost.startShield()
+    def findCorner(self):
+        corners = [Vectors(16.0, 64.0), Vectors(16.0, 512.0)]
+        dist_corner = [0.0, 0.0]
+        for i in range(len(corners)):
+            min_distance = 600.0
+            for ghost in self.ghosts:
+                dist = Vectors.lenght(corners[i] - ghost.position)
+                if dist < min_distance:
+                    min_distance = dist
+            dist_corner[i] = min_distance
+        return dist_corner
 
-                self.shield = None
-            elif self.shield.destroy:
-                self.shield = None
+    def gettingTeleport(self):
+        if self.pellets.numEaten == 120:
+            if self.teleport is None:
+                self.teleport = Teleport(self.nodes.getNodeFromTiles(9, 20), self.level)
+        if self.teleport is not None:
+            if self.pacman.collideCheck(self.teleport):
+                dist_corner = self.findCorner()
+                if dist_corner[0] < dist_corner[1]:
+                    new_place = self.nodes.getNodeFromTiles(1, 32)
+                elif dist_corner[1] < dist_corner[0]:
+                    new_place = self.nodes.getNodeFromTiles(1, 4)
+                self.pacman.teleport(new_place)
+                self.teleport = None
+            elif self.teleport.destroy:
+                self.teleport = None
 
     def checkEvents(self):
         for event in pygame.event.get():
@@ -700,8 +696,8 @@ class GameController(object):
         if self.bomb is not None:
             self.bomb.render(self.screen)
 
-        # if self.shield is not None:
-        #     self.shield.render(self.screen)
+        if self.teleport is not None:
+            self.teleport.render(self.screen)
 
         self.draw_misc()
         pygame.display.update()
