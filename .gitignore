@@ -128,7 +128,12 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
 
+# C extensions
+*.so
 # Spyder project settings
 .spyderproject
 .spyproject
