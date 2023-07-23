@@ -322,7 +322,7 @@ class GameController(object):
 
     def startGame(self):
         # music_start.play()
-        pygame.mixer.music.play(-1)
+        # pygame.mixer.music.play(-1)
         self.setBackground()
 
         self.nodes = NodeGroup(self.level_map)
@@ -364,8 +364,10 @@ class GameController(object):
 
     def updateScore(self, points):
         self.score += points
+
     def close(self):
         exit()
+
     def update(self):  # remove time later !
         delta_t = self.clock.tick(120) / 1000.0
         if self.counter < 19:  # spped of eating my pacman
@@ -392,7 +394,6 @@ class GameController(object):
 
         self.ghosts.update(delta_t)
         self.checkGhostEvents()
-
         self.render()
         self.get_frame()
 
@@ -402,14 +403,14 @@ class GameController(object):
 
     def get_frame(self):
         raw_maze_data = []
-        with open(self.level_map, 'r') as f:
+        with open(self.level_map, "r") as f:
             for line in f:
                 raw_maze_data.append(line.split())
         raw_maze_data = np.array(raw_maze_data)
         self.state = np.zeros(raw_maze_data.shape)
         for idx, values in enumerate(raw_maze_data):
             for id, value in enumerate(values):
-                if value in ['9', '=', 'X','3','4','5','6','7','8']:
+                if value in ["9", "=", "X", "3", "4", "5", "6", "7", "8"]:
                     self.state[idx][id] = 1
         # for idx, pellet in enumerate(self.eatenPellets):
         #     x = int(pellet.position.x / 16)
@@ -425,11 +426,14 @@ class GameController(object):
         pacman_x = int(round(self.pacman.position.x / 16))
         pacman_y = int(round(self.pacman.position.y / 16))
         self.state[pacman_y][pacman_x] = 5
-        #assert self.state[y][x] != 1
+        # assert self.state[y][x] != 1
         for ghost in enumerate(self.ghosts):
             x = int(round(ghost[1].position.x / 16))
             y = int(round(ghost[1].position.y / 16))
-            if ghost[1].mode.current_mode is not scared_mode and ghost[1].mode.current_mode is not respawning_mode:
+            if (
+                ghost[1].mode.current_mode is not scared_mode
+                and ghost[1].mode.current_mode is not respawning_mode
+            ):
                 self.state[y][x] = -6
             elif ghost[1].mode.current_mode is scared_mode:
                 if self.state[y][x] != 5:
@@ -445,12 +449,10 @@ class GameController(object):
         state = None
         invalid_move = False
         info = GameState()
-        if self.lost == True:
-            self.lost == False
         lives = self.lives
         info.frame = self.get_frame()
         info.image = pygame.surfarray.array3d(pygame.display.get_surface())
-        #info.state = self.get_state()
+        # info.state = self.get_state()
         if not self.pacman.validDirection(action):
             invalid_move = True
         delta_t = self.clock.tick(120) / 1000.0
@@ -458,56 +460,49 @@ class GameController(object):
             self.counter += 1
         else:
             self.counter = 0
-
         self.pacman.update(delta_t, action)
         self.pellets.update(delta_t)
         self.checkEvents()
         self.eatDots()
-
         if self.gold is not None:
             self.gold.update(delta_t)
         self.gettingGold()
-
         if self.bomb is not None:
             self.bomb.update(delta_t)
         self.gettingBomb()
-
         # if self.shield is not None:
         #     self.shield.update(delta_t)
         # self.gettingShield()
-
         self.ghosts.update(delta_t)
         self.checkGhostEvents()
         self.render()
         if lives == self.lives:
             info.frame = self.get_frame()
-            #info.state = self.get_state()
+            # info.state = self.get_state()
             info.image = pygame.surfarray.array3d(pygame.display.get_surface())
         info.lives = self.lives
-        done = self.lost
         row_indices, _ = np.where(info.frame == 5)
         info.invalid_move = invalid_move
         info.total_pellets = len(self.pellets.pelletList) + len(self.eatenPellets)
         info.collected_pellets = len(self.eatenPellets)
-        info.lives = self.lives
         if row_indices.size > 0:
             info.food_distance = minDistance(info.frame, 5, 3, [-6, 1])
             info.powerup_distance = minDistance(info.frame, 5, 4, [-6, 1])
             info.ghost_distance = minDistance(info.frame, 5, -6)
             info.scared_ghost_distance = minDistance(info.frame, 5, 6)
-        return ([], self.score, done, info)
+        return ([], self.score, (self.lives == 0 or self.pellets.isEmpty()), info)
 
     def eatDots(self):
         dot = self.pacman.collectObjectives(self.pellets.pelletList)
         # dot = self.pacman.eatDots(self.pellets.pelletList)
         if dot:
-            eatdot_sound.play()
+            # eatdot_sound.play()
             self.pellets.numEaten += 1
             self.updateScore(dot.points)
             self.pellets.pelletList.remove(dot)
-            if self.pellets.numEaten == 30:
+            if self.pellets.numEaten == 20:
                 self.ghosts.inky.startNode.allowAccess(right, self.ghosts.inky)
-            if self.pellets.numEaten == 70:
+            if self.pellets.numEaten == 60:
                 self.ghosts.clyde.startNode.allowAccess(left, self.ghosts.clyde)
             # print("remain dots",len(self.pellets.pelletList))
             if len(self.pellets.pelletList) < 5:
@@ -530,7 +525,7 @@ class GameController(object):
         for ghost in self.ghosts:
             if self.pacman.collideGhost(ghost):
                 if ghost.mode.current_mode is FREIGHT:
-                    eatghost_sound.play()
+                    # eatghost_sound.play()
                     # ghost.visible = False
                     # self.ghosts.pinky.visible=False
                     self.updateScore(ghost.point)
@@ -539,13 +534,13 @@ class GameController(object):
                     ghost.startRespawning()
                 elif ghost.mode.current_mode is not SPAWN:
                     if self.pacman.alive:
-                        death_sound.play()
+                        # death_sound.play()
                         self.lives -= 1
                         self.pacman.die()
                         self.ghosts.hide()
                         if self.lives <= 0:
-                            # self.lost=True
-                            self.restartGame()
+                            self.lost=True
+                            #self.restartGame()
                         else:
                             self.resetLevel(self.level)
 
@@ -571,7 +566,7 @@ class GameController(object):
         return nearest_ghost
 
     def gettingBomb(self):
-        if self.pellets.numEaten == 10:
+        if self.pellets.numEaten == 50:
             if self.bomb is None:
                 self.bomb = Bomb(self.nodes.getNodeFromTiles(9, 14), self.level)
 

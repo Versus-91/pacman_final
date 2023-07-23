@@ -33,6 +33,12 @@ REVERSED = {0: 1, 1: 0, 2: 3, 3: 2}
 EPS_START = 1.0
 EPS_END = 0.1
 MAX_EPISODES = 1500
+ACTIONS = {
+    0: "up",
+    1: "down",
+    2: "left",
+    3: "right",
+}
 
 
 class ExperienceReplay:
@@ -148,20 +154,18 @@ class PacmanAgent:
         if self.score - prev_score == 50:
             got_pallet = True
             reward += 5
-        if self.score >= 200:
+        if self.score - prev_score >= 200:
             reward += 3
         if hit_ghost:
             reward -= 10
-        else:
-            if info.ghost_distance in [1, 0]:
-                if self.check_cell(info, action, [-6]):
-                    print("close to ghost")
-                    reward -= 5
+        if info.ghost_distance in [1, 0] and not hit_ghost:
+            if self.check_cell(info, action, [-6]):
+                print("close to ghost", ACTIONS[action])
+                reward -= 5
         if info.invalid_move and invalid_move:
-            reward -= 5
+            reward -= 8
         reward -= 1
         if not got_pallet and self.check_cell(info, action, [3, 4]):
-            print("got food")
             reward += 2
         return reward
 
@@ -362,10 +366,12 @@ class PacmanAgent:
             while True:
                 action = self.act(state)
                 action_t = action.item()
-                for i in range(4):
+                for i in range(3):
                     if not done:
                         obs, self.score, done, info = self.game.step(action_t)
-                        if lives != info.lives:
+                        if lives != info.lives or (
+                            info.invalid_move and self.check_cells(info, action_t)
+                        ):
                             break
                     else:
                         break
@@ -386,7 +392,9 @@ class PacmanAgent:
                 self.prev_info = info
                 reward_total += reward_
                 last_score = self.score
-                action_tensor = torch.tensor([[action_t]], device=device, dtype=torch.long)
+                action_tensor = torch.tensor(
+                    [[action_t]], device=device, dtype=torch.long
+                )
                 self.memory.append(
                     state,
                     action_tensor,
@@ -396,14 +404,15 @@ class PacmanAgent:
                 )
                 state = next_state
                 self.learn()
-                if not info.invalid_move and not self.check_cells(info,action):
+                if not (info.invalid_move and self.check_cells(info, action)):
                     self.last_action = action_t
                 # if self.steps % 100000 == 0:
                 #     self.scheduler.step()
                 if done:
                     self.epsilon = max(
                         EPS_END,
-                        EPS_START - (EPS_START - EPS_END) * (self.episode) / MAX_EPISODES,
+                        EPS_START
+                        - (EPS_START - EPS_END) * (self.episode) / MAX_EPISODES,
                     )
                     self.log()
                     self.rewards.append(self.score)
@@ -416,11 +425,10 @@ class PacmanAgent:
                     torch.cuda.empty_cache()
                     break
         except:
-          print("closed")
-          self.save_model(force=True)
-          self.game.stop()
-          self.writer.close()
-
+            print("closed")
+            self.save_model(force=True)
+            self.game.stop()
+            self.writer.close()
 
     def log(self):
         current_lr = self.optimizer.param_groups[0]["lr"]
