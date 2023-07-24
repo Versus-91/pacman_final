@@ -36,13 +36,14 @@ MEMORY_SIZE = 18000
 Experience = namedtuple(
     "Experience", field_names=["state", "action", "reward", "done", "new_state"]
 )
+ACTIONS = {0: "up", 1: "down", 2: "left", 3: "right"}
 
 REVERSED = {0: 1, 1: 0, 2: 3, 3: 2}
 EPS_START = 1.0
 EPS_END = 0.1
 MAX_STEP = 1000000
 
-episodes = 1500
+episodes = 1000
 
 
 class ExperienceReplay:
@@ -113,24 +114,25 @@ class PacmanAgent:
                 reward = -10
             return reward
         progress = info.collected_pellets / info.total_pellets
-        if self.steps % 1000 == 0:
-            self.progress_reward = progress * 3
+        self.progress_reward = int(progress * 4)
         if self.score - prev_score == 10 or self.score - prev_score == 50:
-            print("progress", progress)
             reward += 5 + self.progress_reward
-        elif self.score - prev_score % 200 == 0 and self.score - prev_score != 0:
+            if self.score - prev_score == 50:
+                reward += 1
+        elif self.score - prev_score >= 200:
             print("ate ghost", self.progress_reward)
             reward += 2
-        # elif self.score - prev_score != 0:
-        #     print("anomally", self.score - prev_score)
-        #     reward += 1
+        elif self.score - prev_score > 0 and self.score - prev_score < 200:
+            print("anomally", self.score - prev_score)
+            reward += 1
         if hit_ghost:
-            reward -= 10
-        if info.invalid_move:
-            reward -= 2
+            reward -= 8
         if info.invalid_move and info.stopped:
-            reward -= 5
-        if action == REVERSED[self.last_action]:
+            reward -= 4
+        if not info.invalid_move and self.prev_info.stopped:
+            print("leaving", ACTIONS[action])
+            reward += 2
+        if action == REVERSED[self.last_action] and not self.prev_info.invalid_move:
             reward -= 1
         reward -= 1
         return reward
@@ -320,9 +322,9 @@ class PacmanAgent:
         while True:
             action = self.select_action(state)
             action_t = action.item()
-            for i in range(3):
+            for i in range(4):
                 obs, self.score, done, info = self.game.step(action_t)
-                if lives != info.lives or done or info.invalid_move:
+                if lives != info.lives or done:
                     break
             hit_ghost = False
             if lives != info.lives:
@@ -417,7 +419,7 @@ class PacmanAgent:
 
 if __name__ == "__main__":
     agent = PacmanAgent()
-    agent.load_model(name="300-111688", eval=False)
+    # agent.load_model(name="300-111688", eval=False)
     # agent.episode = 0
     # agent.rewards = []
     while True:

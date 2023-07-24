@@ -19,7 +19,7 @@ from run import GameState
 matplotlib.use("Agg")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_ACTIONS = 4
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 SAVE_EPISODE_FREQ = 100
 GAMMA = 0.99
 MOMENTUM = 0.95
@@ -32,6 +32,7 @@ REVERSED = {0: 1, 1: 0, 2: 3, 3: 2}
 EPS_START = 1.0
 EPS_END = 0.1
 MAX_EPISODES = 1000
+max_steps = 1000000
 
 
 class ExperienceReplay:
@@ -56,7 +57,7 @@ class PacmanAgent:
         self.policy = Conv2dNetwork().to(device)
         self.memory = ExperienceReplay(20000)
         self.game = GameWrapper()
-        self.lr = 0.0003
+        self.lr = 0.001
         self.last_action = 0
         self.buffer = deque(maxlen=4)
         self.last_reward = -1
@@ -66,7 +67,7 @@ class PacmanAgent:
         self.episode = 0
         self.optimizer = optim.Adam(self.policy.parameters(), lr=self.lr)
         self.prev_info = GameState()
-        # self.scheduler = lr_scheduler.ExponentialLR(self.optimizer, gamma=0.8)
+        self.scheduler = lr_scheduler.ExponentialLR(self.optimizer, gamma=0.8)
         self.losses = []
         self.epsilon = 1
 
@@ -153,14 +154,18 @@ class PacmanAgent:
                 and self.prev_info.ghost_distance != -1
                 and self.prev_info.ghost_distance > info.ghost_distance
             ):
-                reward -= 6
-        if info.invalid_move and invalid_move:
-            reward -= 5
-        if info.food_distance < self.prev_info.ghost_distance and self.prev_info.ghost_distance != -1:
+                reward -= 7
+        if info.invalid_move and info.stopped:
+            reward -= 4
+        if (
+            info.food_distance < self.prev_info.ghost_distance
+            and self.prev_info.ghost_distance != -1
+            and self.prev_info.stopped
+        ):
             reward += 2
-        if action == REVERSED[self.last_action]:
+        if action == REVERSED[self.last_action] and not self.prev_info.invalid_move:
             reward -= 1
-        print("reward",reward)
+        print("reward", reward)
         reward -= 1
         return reward
 
@@ -327,7 +332,7 @@ class PacmanAgent:
         while True:
             action = self.act(state)
             action_t = action.item()
-            for i in range(3):
+            for i in range(4):
                 if not done:
                     obs, self.score, done, info = self.game.step(action_t)
                     if lives != info.lives:
@@ -341,7 +346,7 @@ class PacmanAgent:
                 hit_ghost = True
                 lives -= 1
                 if not done:
-                    for i in range(3):
+                    for i in range(4):
                         _, _, _, _ = self.game.step(action_t)
             # next_state = torch.tensor(obs).float().to(device)
             next_state = self.process_state(self.buffer)
@@ -364,12 +369,12 @@ class PacmanAgent:
             self.learn()
             if not info.invalid_move:
                 self.last_action = action_t
-            # if self.steps % 100000 == 0:
-            #     self.scheduler.step()
+            if self.steps % 100000 == 0:
+                self.scheduler.step()
             if done:
                 self.epsilon = max(
                     EPS_END,
-                    EPS_START - (EPS_START - EPS_END) * (self.episode) / MAX_EPISODES,
+                    EPS_START - (EPS_START - EPS_END) * (self.steps) / max_steps,
                 )
                 self.log()
                 self.rewards.append(self.score)
@@ -431,7 +436,7 @@ class PacmanAgent:
 
 if __name__ == "__main__":
     agent = PacmanAgent()
-    agent.load_model(name="500-146374", eval=False)
+    # agent.load_model(name="500-146374", eval=False)
     while True:
         agent.train()
         # agent.test()
