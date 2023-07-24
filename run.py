@@ -82,9 +82,19 @@ powerdot_sound = pygame.mixer.Sound("assets/pacman_intermission.wav")
 class GameState:
     def __init__(self):
         self.lives = 0
+        self.frame = []
+        self.state = []
         self.invalid_move = False
         self.total_pellets = 0
         self.collected_pellets = 0
+        self.food_distance = -1
+        self.powerup_distance =-1
+        self.ghost_distance = -1
+        self.scared_ghost_distance = -1
+        self.image = []
+        self.x = 0
+        self.y = 0
+        self.stopped = False
 
 
 class GameController(object):
@@ -314,7 +324,7 @@ class GameController(object):
 
     def startGame(self):
         # music_start.play()
-        pygame.mixer.music.play(-1)
+        #pygame.mixer.music.play(-1)
         self.setBackground()
 
         self.nodes = NodeGroup(self.level_map)
@@ -464,10 +474,6 @@ class GameController(object):
         if self.teleport is not None:
             self.teleport.update(delta_t)
         self.gettingTeleport()
-        self.gettingBomb()
-        # if self.shield is not None:
-        #     self.shield.update(delta_t)
-        # self.gettingShield()
         self.ghosts.update(delta_t)
         self.checkGhostEvents()
         self.render()
@@ -478,8 +484,9 @@ class GameController(object):
         info.lives = self.lives
         row_indices, _ = np.where(info.frame == 5)
         info.invalid_move = invalid_move
-        info.total_pellets = len(self.pellets.pelletList) + len(self.eatenPellets)
-        info.collected_pellets = len(self.eatenPellets)
+        info.total_pellets = len(self.pellets.pelletList) + self.pellets.numEaten
+        info.collected_pellets = self.pellets.numEaten
+        info.stopped = self.pacman.direction == 0
         if row_indices.size > 0:
             info.food_distance = minDistance(info.frame, 5, 3, [-6, 1])
             info.powerup_distance = minDistance(info.frame, 5, 4, [-6, 1])
@@ -491,11 +498,11 @@ class GameController(object):
         dot = self.pacman.collectObjectives(self.pellets.pelletList)
         # dot = self.pacman.eatDots(self.pellets.pelletList)
         if dot:
-            eatdot_sound.play()
+            #eatdot_sound.play()
             self.pellets.numEaten += 1
             if self.pellets.numEaten == 20:
                 self.ghosts.inky.startNode.allowAccess(right, self.ghosts.inky)
-            if self.pellets.numEaten == 60:
+            if self.pellets.numEaten == 50:
                 self.ghosts.clyde.startNode.allowAccess(left, self.ghosts.clyde)
             self.updateScore(dot.points)
             self.pellets.pelletList.remove(dot)
@@ -520,7 +527,7 @@ class GameController(object):
         for ghost in self.ghosts:
             if self.pacman.collideGhost(ghost):
                 if ghost.mode.current_mode is FREIGHT:
-                    eatghost_sound.play()
+                    #eatghost_sound.play()
                     # ghost.visible = False
                     # self.ghosts.pinky.visible=False
                     self.updateScore(ghost.point)
@@ -529,7 +536,7 @@ class GameController(object):
                     ghost.startRespawning()
                 elif ghost.mode.current_mode is not SPAWN:
                     if self.pacman.alive:
-                        death_sound.play()
+                        #death_sound.play()
                         self.lives -= 1
                         self.pacman.die()
                         self.ghosts.hide()

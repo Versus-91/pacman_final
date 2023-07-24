@@ -42,7 +42,7 @@ EPS_START = 1.0
 EPS_END = 0.1
 MAX_STEP = 1000000
 
-episodes = 1000
+episodes = 1500
 
 
 class ExperienceReplay:
@@ -57,6 +57,7 @@ class ExperienceReplay:
 
     def __len__(self):
         return len(self.exps)
+
 
 class DQNCNN(nn.Module):
     def __init__(self):
@@ -100,6 +101,7 @@ class PacmanAgent:
         self.writer = SummaryWriter("logs/dqn")
         self.prev_info = GameState()
         self.images = deque(maxlen=4)
+        self.progress_reward = 0
 
     def get_reward(self, done, lives, hit_ghost, action, prev_score, info: GameState):
         reward = 0
@@ -111,21 +113,25 @@ class PacmanAgent:
                 reward = -10
             return reward
         progress = info.collected_pellets / info.total_pellets
-        if progress > 0.5:
-            progress = 3
-        else:
-            progress = 0
+        if self.steps % 1000 == 0:
+            self.progress_reward = progress * 3
         if self.score - prev_score == 10 or self.score - prev_score == 50:
-            reward += 5 + progress
-        elif self.score - prev_score % 200 == 0:
+            print("progress", progress)
+            reward += 5 + self.progress_reward
+        elif self.score - prev_score % 200 == 0 and self.score - prev_score != 0:
+            print("ate ghost", self.progress_reward)
             reward += 2
-        elif self.score - prev_score != 0:
-            print("anomally", self.score - prev_score)
-            reward += 1
+        # elif self.score - prev_score != 0:
+        #     print("anomally", self.score - prev_score)
+        #     reward += 1
         if hit_ghost:
             reward -= 10
         if info.invalid_move:
-            reward -= 3
+            reward -= 2
+        if info.invalid_move and info.stopped:
+            reward -= 5
+        if action == REVERSED[self.last_action]:
+            reward -= 1
         reward -= 1
         return reward
 
@@ -299,71 +305,64 @@ class PacmanAgent:
         return normalized_tensor
 
     def train(self):
-        while self.episode <= episodes:
-            self.save_model()
-            obs = self.game.start()
-            self.episode += 1
-            random_action = random.choice([0, 1, 2, 3])
+        self.save_model()
+        obs = self.game.start()
+        self.episode += 1
+        random_action = random.choice([0, 1, 2, 3])
+        obs, self.score, done, info = self.game.step(random_action)
+        last_score = 0
+        lives = 3
+        for i in range(6):
             obs, self.score, done, info = self.game.step(random_action)
-            last_score = 0
-            lives = 3
-            for i in range(6):
-                obs, self.score, done, info = self.game.step(random_action)
-                self.images.append(self.processs_image(info.image))
-            state = self.process_state(self.images)
-            while True:
-                action = self.select_action(state)
-                action_t = action.item()
-                for i in range(3):
-                    obs, self.score, done, info = self.game.step(action_t)
-                    if lives != info.lives or done or info.invalid_move:
-                        break
-                hit_ghost = False
-                if lives != info.lives:
-                    # self.plot()
-                    hit_ghost = True
-                    lives -= 1
-                    for i in range(3):
-                        obs, _, _, _ = self.game.step(action_t)
-                        if lives != info.lives or done :
-                            break
-                self.images.append(self.processs_image(info.image))
-                reward_ = self.get_reward(
-                    done, lives, hit_ghost, action_t, last_score, info
-                )
-                self.prev_info = info
-                last_score = self.score
-                next_state = self.process_state(self.images)
-                self.memory.append(
-                    state,
-                    action,
-                    torch.tensor([reward_], device=device),
-                    next_state,
-                    done,
-                )
-                state = next_state
-                self.optimize_model()
-                if not info.invalid_move:
-                    self.last_action = action_t
-                if done or lives < 0:
-                    self.epsilon = max(
-                        EPS_END,
-                        EPS_START - (EPS_START - EPS_END) * self.episode / episodes,
-                    )
-                    self.writer.add_scalar(
-                        "episode reward", self.score, global_step=self.episode
-                    )
-                    self.log()
-                    # assert reward_sum == reward
-                    self.rewards.append(self.score)
-                    self.game.restart()
-                    self.plot_rewards(avg=50, name="double_dqn.png")
-                    time.sleep(1)
-                    torch.cuda.empty_cache()
+            self.images.append(self.processs_image(info.image))
+        state = self.process_state(self.images)
+        self.progress_reward = 0
+        while True:
+            action = self.select_action(state)
+            action_t = action.item()
+            for i in range(3):
+                obs, self.score, done, info = self.game.step(action_t)
+                if lives != info.lives or done or info.invalid_move:
                     break
-        else:
-            self.save_model()
-            exit()
+            hit_ghost = False
+            if lives != info.lives:
+                # self.plot()
+                hit_ghost = True
+                lives -= 1
+            self.images.append(self.processs_image(info.image))
+            reward_ = self.get_reward(
+                done, lives, hit_ghost, action_t, last_score, info
+            )
+            self.prev_info = info
+            last_score = self.score
+            next_state = self.process_state(self.images)
+            self.memory.append(
+                state,
+                action,
+                torch.tensor([reward_], device=device),
+                next_state,
+                done,
+            )
+            state = next_state
+            self.optimize_model()
+            if not info.invalid_move:
+                self.last_action = action_t
+            if done or lives < 0:
+                self.epsilon = max(
+                    EPS_END,
+                    EPS_START - (EPS_START - EPS_END) * self.episode / episodes,
+                )
+                self.writer.add_scalar(
+                    "episode reward", self.score, global_step=self.episode
+                )
+                self.log()
+                # assert reward_sum == reward
+                self.rewards.append(self.score)
+                self.game.restart()
+                self.plot_rewards(avg=50, name="double_dqn.png")
+                time.sleep(0.5)
+                torch.cuda.empty_cache()
+                break
 
     def log(self):
         # current_lr = self.optimizer.param_groups[0]["lr"]
@@ -418,7 +417,7 @@ class PacmanAgent:
 
 if __name__ == "__main__":
     agent = PacmanAgent()
-    # agent.load_model(name="1500-746581", eval=True)
+    agent.load_model(name="300-111688", eval=False)
     # agent.episode = 0
     # agent.rewards = []
     while True:
