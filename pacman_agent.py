@@ -156,16 +156,16 @@ class PacmanAgent:
             ):
                 reward -= 7
         if info.invalid_move and info.stopped:
-            reward -= 4
+            reward -= 3
         if (
             info.food_distance < self.prev_info.ghost_distance
-            and self.prev_info.ghost_distance != -1
             and self.prev_info.stopped
+            and not info.invalid_move
         ):
+            print("closer too food")
             reward += 2
         if action == REVERSED[self.last_action] and not self.prev_info.invalid_move:
             reward -= 1
-        print("reward", reward)
         reward -= 1
         return reward
 
