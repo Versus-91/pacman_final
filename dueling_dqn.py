@@ -47,6 +47,7 @@ class ExperienceReplay:
     def __len__(self):
         return len(self.exps)
 
+
 class PacmanNet(nn.Module):
     def __init__(self):
         super(PacmanNet, self).__init__()
@@ -76,10 +77,11 @@ class PacmanNet(nn.Module):
         a = self.relu_a(a)
         a = self.fc_advantage(a)
 
-
         q = v + (a - torch.mean(a, dim=1, keepdim=True))
 
         return q
+
+
 class PacmanAgent:
     def __init__(self):
         self.steps = 0
@@ -99,17 +101,18 @@ class PacmanAgent:
         self.score = 0
         self.episode = 0
         self.optimizer = optim.Adam(self.policy.parameters(), lr=self.lr)
-        #self.scheduler = lr_scheduler.ExponentialLR(self.optimizer, gamma=0.8)
+        # self.scheduler = lr_scheduler.ExponentialLR(self.optimizer, gamma=0.8)
         self.losses = []
         self.epsilon = 1
         self.last_state = GameState()
+
     def calculate_reward(
         self, done, lives, hit_ghost, action, prev_score, info: GameState, state
     ):
         reward = 0
         time_penalty = -0.01
         movement_penalty = -0.1
-        invalid_mode = self.check_cells(info,action)
+        invalid_mode = self.check_cells(info, action)
         progress = round((info.collected_pellets / info.total_pellets) * 10)
         if done:
             if lives > 0:
@@ -148,8 +151,8 @@ class PacmanAgent:
                 n2 = 0
                 n3 = 0
                 n4 = 0
-                print("x",index[0][0],"y",index[1][0])
-                print("x",index[0][0],"y",index[1][0])
+                print("x", index[0][0], "y", index[1][0])
+                print("x", index[0][0], "y", index[1][0])
             if -6 in (n1, n2, n3, n4):
                 reward -= 30
             elif 3 in (n1, n2, n3, n4):
@@ -160,9 +163,10 @@ class PacmanAgent:
             reward -= 5
         reward = round(reward, 2)
         return reward
-    def get_reward(self, done, lives, hit_ghost, action, prev_score,info:GameState):
+
+    def get_reward(self, done, lives, hit_ghost, action, prev_score, info: GameState):
         reward = 0
-        invalid_move = self.check_cells(info,action)
+        invalid_move = self.check_cells(info, action)
         if done:
             if lives > 0:
                 print("won")
@@ -170,25 +174,22 @@ class PacmanAgent:
             else:
                 reward = -10
             return reward
-        progress =  int((info.collected_pellets / info.total_pellets) * 5)
-        if self.score - prev_score == 10 :
-            reward += 4 
+        progress = int((info.collected_pellets / info.total_pellets) * 5)
+        if self.score - prev_score == 10:
+            reward += 4
         if self.score - prev_score == 50:
-            reward += 5 
-        if self.score >= 200:
+            reward += 5
+        if self.score - prev_score >= 200:
             reward += 3
         if hit_ghost:
             reward -= 10
-        if action == REVERSED[self.last_action]:
-            reward -= 2
         if info.invalid_move and invalid_move:
             reward -= 1
-        if info.invalid_move and info.stopped:
+        if info.invalid_move and self.last_state.stopped:
             reward -= 1
-        if self.last_state.food_distance > info.food_distance:
-            print("away")
-            reward -= 1
+        reward -= 1
         return reward
+
     def write_matrix(self, matrix):
         with open("outfile.txt", "wb") as f:
             for line in matrix:
@@ -226,7 +227,6 @@ class PacmanAgent:
         if self.steps % sync_every == 0:
             self.target.load_state_dict(self.policy.state_dict())
 
-
     def act(self, state, eval=False):
         if eval:
             with torch.no_grad():
@@ -234,7 +234,7 @@ class PacmanAgent:
             vals = q_values.max(1)[1]
             return vals.view(1, 1)
         rand = random.random()
-        self.steps+=1
+        self.steps += 1
         if rand > self.epsilon:
             with torch.no_grad():
                 outputs = self.policy(state)
@@ -245,7 +245,7 @@ class PacmanAgent:
                 action = random.randrange(N_ACTIONS)
             return torch.tensor([[action]], device=device, dtype=torch.long)
 
-    def plot_rewards(self,items, name="plot.png",label="rewards", avg=100):
+    def plot_rewards(self, items, name="plot.png", label="rewards", avg=100):
         plt.figure(1)
         rewards = torch.tensor(items, dtype=torch.float)
         plt.xlabel("Episode")
@@ -283,8 +283,13 @@ class PacmanAgent:
                     f"target-model-{self.episode}-{self.steps}.pt",
                 ),
             )
-            torch.save(self.optimizer.state_dict(), os.path.join(
-                os.getcwd() + "\\results", f"optimizer-{self.episode}-{self.steps}.pt"))
+            torch.save(
+                self.optimizer.state_dict(),
+                os.path.join(
+                    os.getcwd() + "\\results",
+                    f"optimizer-{self.episode}-{self.steps}.pt",
+                ),
+            )
 
     def load_model(self, name, eval=False):
         path = os.path.join(os.getcwd() + "\\results", f"target-model-{name}.pt")
@@ -292,19 +297,19 @@ class PacmanAgent:
         path = os.path.join(os.getcwd() + "\\results", f"policy-model-{name}.pt")
         self.policy.load_state_dict(torch.load(path))
 
-    
         if eval:
             self.target.eval()
             self.policy.eval()
         else:
-            path = os.path.join(os.getcwd() + "\\results", f"optimizer-{name}.pt")       
-            self.optimizer.load_state_dict(torch.load(path))            
+            path = os.path.join(os.getcwd() + "\\results", f"optimizer-{name}.pt")
+            self.optimizer.load_state_dict(torch.load(path))
             name_parts = name.split("-")
             self.episode = int(name_parts[0])
             self.steps = int(name_parts[1])
             self.target.train()
             self.policy.train()
-    def check_cells(self,info,action):
+
+    def check_cells(self, info, action):
         row_indices, col_indices = np.where(info.frame == 5)
         invalid_in_maze = False
         if row_indices.size > 0:
@@ -323,17 +328,18 @@ class PacmanAgent:
             if info.invalid_move:
                 if action == 0:
                     if upper_cell == 1:
-                        invalid_in_maze=True
+                        invalid_in_maze = True
                 elif action == 1:
                     if lower_cell == 1:
-                        invalid_in_maze=True
+                        invalid_in_maze = True
                 elif action == 2:
                     if left_cell == 1:
-                        invalid_in_maze=True
+                        invalid_in_maze = True
                 elif action == 3:
                     if right_cell == 1:
-                        invalid_in_maze=True
+                        invalid_in_maze = True
         return invalid_in_maze
+
     def train(self):
         if self.episode >= MAX_EPISODES:
             self.save_model(force=True)
@@ -362,8 +368,8 @@ class PacmanAgent:
                     obs, self.score, done, info = self.game.step(action_t)
                     if lives != info.lives:
                         break
-            
-            #self.buffer.append(info.frame)
+
+            # self.buffer.append(info.frame)
             hit_ghost = False
             if lives != info.lives:
                 # self.write_matrix(self.buffer)
@@ -374,7 +380,7 @@ class PacmanAgent:
                         _, _, _, _ = self.game.step(action_t)
             tensor = [torch.from_numpy(arr).float().to(device) for arr in info.state]
             next_state = torch.stack(tensor, dim=0).unsqueeze(0)
-            #next_state = self.process_state(self.buffer)
+            # next_state = self.process_state(self.buffer)
 
             reward_ = self.get_reward(
                 done, lives, hit_ghost, action_t, last_score, info
@@ -399,12 +405,13 @@ class PacmanAgent:
             #     self.scheduler.step()
             if done:
                 self.epsilon = max(
-                        EPS_END, EPS_START - (EPS_START - EPS_END) * (self.episode) / MAX_EPISODES
-                    )
+                    EPS_END,
+                    EPS_START - (EPS_START - EPS_END) * (self.episode) / MAX_EPISODES,
+                )
                 self.log()
                 self.rewards.append(self.score)
-                self.plot_rewards(items= self.rewards, avg=50)
-                #self.plot_rewards(items = self.losses,label="losses",name="losses.png", avg=50)
+                self.plot_rewards(items=self.rewards, avg=50)
+                # self.plot_rewards(items = self.losses,label="losses",name="losses.png", avg=50)
                 time.sleep(1)
                 self.game.restart()
                 torch.cuda.empty_cache()
@@ -449,7 +456,7 @@ class PacmanAgent:
                 state = self.process_state(self.buffer)
                 if done:
                     self.rewards.append(reward)
-                    self.plot_rewards(name="test.png",items=self.rewards, avg=2)
+                    self.plot_rewards(name="test.png", items=self.rewards, avg=2)
                     self.game.restart()
                     torch.cuda.empty_cache()
                     break
@@ -459,7 +466,7 @@ class PacmanAgent:
 
 if __name__ == "__main__":
     agent = PacmanAgent()
-    agent.load_model(name="300-79595", eval=False)
+    # agent.load_model(name="300-79595", eval=False)
     while True:
         agent.train()
-        #agent.test()
+        # agent.test()
