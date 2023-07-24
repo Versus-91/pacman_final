@@ -149,7 +149,7 @@ class PacmanAgent:
             reward -= 10
         else:
             if (
-                info.ghost_distance in [2, 3]
+                info.ghost_distance in [2]
                 and self.prev_info.ghost_distance != -1
                 and self.prev_info.ghost_distance > info.ghost_distance
             ):

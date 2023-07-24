@@ -436,7 +436,6 @@ class GameController(object):
             return self.state[3:34, :]
 
     def perform_action(self, action):
-        state = None
         invalid_move = False
         info = GameState()
         lives = self.lives
@@ -457,8 +456,14 @@ class GameController(object):
         if self.gold is not None:
             self.gold.update(delta_t)
         self.gettingGold()
+
         if self.bomb is not None:
             self.bomb.update(delta_t)
+        self.gettingBomb()
+
+        if self.teleport is not None:
+            self.teleport.update(delta_t)
+        self.gettingTeleport()
         self.gettingBomb()
         # if self.shield is not None:
         #     self.shield.update(delta_t)
@@ -529,8 +534,8 @@ class GameController(object):
                         self.pacman.die()
                         self.ghosts.hide()
                         if self.lives <= 0:
-                            # self.lost=True
-                            self.restartGame()
+                            self.lost=True
+                            #self.restartGame()
                         else:
                             self.resetLevel(self.level)
 

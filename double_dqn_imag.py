@@ -42,7 +42,7 @@ EPS_START = 1.0
 EPS_END = 0.1
 MAX_STEP = 1000000
 
-episodes = 1500
+episodes = 1000
 
 
 class ExperienceReplay:
@@ -57,47 +57,6 @@ class ExperienceReplay:
 
     def __len__(self):
         return len(self.exps)
-
-
-class DQN(nn.Module):
-    def __init__(self, input_shape, num_actions):
-        super(DQN, self).__init__()
-        self.fc = nn.Sequential(
-            nn.Linear(input_shape, 128),
-            nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, num_actions),
-        )
-
-    def forward(self, x):
-        x = self.fc(x)
-        return x
-
-
-class QNetwork(nn.Module):
-    def __init__(self):
-        super(QNetwork, self).__init__()
-        self.conv1 = nn.Conv2d(
-            in_channels=4, out_channels=32, kernel_size=3, stride=1, padding=1
-        )
-        self.conv2 = nn.Conv2d(
-            in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1
-        )
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(64 * 14 * 15, 128)
-        self.fc2 = nn.Linear(128, 4)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = self.pool(x)
-        x = F.relu(self.conv2(x))
-        x = self.pool(x)
-        x = x.view(-1, 64 * 14 * 15)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
-
 
 class DQNCNN(nn.Module):
     def __init__(self):
@@ -157,11 +116,11 @@ class PacmanAgent:
         else:
             progress = 0
         if self.score - prev_score == 10 or self.score - prev_score == 50:
-            reward += 4 + progress
+            reward += 5 + progress
         elif self.score - prev_score % 200 == 0:
-            reward += 1
+            reward += 2
         elif self.score - prev_score != 0:
-            print("anomally")
+            print("anomally", self.score - prev_score)
             reward += 1
         if hit_ghost:
             reward -= 10
@@ -340,7 +299,7 @@ class PacmanAgent:
         return normalized_tensor
 
     def train(self):
-        while self.steps <= MAX_STEP:
+        while self.episode <= episodes:
             self.save_model()
             obs = self.game.start()
             self.episode += 1
@@ -355,15 +314,19 @@ class PacmanAgent:
             while True:
                 action = self.select_action(state)
                 action_t = action.item()
-                for i in range(4):
+                for i in range(3):
                     obs, self.score, done, info = self.game.step(action_t)
-                    if lives != info.lives or done:
+                    if lives != info.lives or done or info.invalid_move:
                         break
                 hit_ghost = False
                 if lives != info.lives:
                     # self.plot()
                     hit_ghost = True
                     lives -= 1
+                    for i in range(3):
+                        obs, _, _, _ = self.game.step(action_t)
+                        if lives != info.lives or done :
+                            break
                 self.images.append(self.processs_image(info.image))
                 reward_ = self.get_reward(
                     done, lives, hit_ghost, action_t, last_score, info
@@ -379,14 +342,13 @@ class PacmanAgent:
                     done,
                 )
                 state = next_state
-                if self.steps % 2 == 0:
-                    self.optimize_model()
+                self.optimize_model()
                 if not info.invalid_move:
                     self.last_action = action_t
                 if done or lives < 0:
                     self.epsilon = max(
                         EPS_END,
-                        EPS_START - (EPS_START - EPS_END) * self.steps / MAX_STEP,
+                        EPS_START - (EPS_START - EPS_END) * self.episode / episodes,
                     )
                     self.writer.add_scalar(
                         "episode reward", self.score, global_step=self.episode
@@ -396,6 +358,7 @@ class PacmanAgent:
                     self.rewards.append(self.score)
                     self.game.restart()
                     self.plot_rewards(avg=50, name="double_dqn.png")
+                    time.sleep(1)
                     torch.cuda.empty_cache()
                     break
         else:
