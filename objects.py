@@ -314,8 +314,7 @@ class Pacman(MovingObject):
 
     def collideCheck(self, other_unit):
         distance_squared = (self.position - other_unit.position).magnitudeSquared()
-        colider_squared = (self.collision_distance + other_unit.collision_distance) ** 2
-        # colider_squared = (self.collision_distance + other_unit.collision_distance)**2
+        colider_squared = (self.collision_distance + other_unit.collision_distance)**2
         if distance_squared <= colider_squared:
             return True
         return False

@@ -220,8 +220,8 @@ class Dots(object):
         self.name = dot
         self.position = Vectors(column*cellw, row*cellh)
         self.color = WHITE
-        self.radius = int(3 * cellw / 16)
-        self.collideRadius = int(4 * cellh / 16)
+        self.radius = int(2 * cellw / 16)
+        self.collision_distance = int(4 * cellh / 16)
         self.points = 10
         self.visible = True
         
@@ -234,7 +234,7 @@ class Powerdots(Dots):
     def __init__(self, row, column):
         Dots.__init__(self, row, column)
         self.name = powerdot
-        self.radius = int(8 * cellw / 16)
+        self.radius = int(6 * cellw / 16)
         self.points = 50
         self.flashTime = 0.2
         self.timer= 0

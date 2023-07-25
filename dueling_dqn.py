@@ -19,7 +19,7 @@ from run import GameState
 matplotlib.use("Agg")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_ACTIONS = 4
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 SAVE_EPISODE_FREQ = 100
 GAMMA = 0.99
 MOMENTUM = 0.95
@@ -31,7 +31,7 @@ Experience = namedtuple(
 REVERSED = {0: 1, 1: 0, 2: 3, 3: 2}
 EPS_START = 1.0
 EPS_END = 0.1
-MAX_EPISODES = 1500
+MAX_EPISODES = 1000
 
 
 class ExperienceReplay:
@@ -90,7 +90,7 @@ class PacmanAgent:
         self.policy = PacmanNet().to(device)
         self.target.load_state_dict(self.policy.state_dict())
         self.target.eval()
-        self.memory = ExperienceReplay(20000)
+        self.memory = ExperienceReplay(18000)
         self.game = GameWrapper()
         self.lr = 0.0003
         self.last_action = 0
@@ -176,17 +176,15 @@ class PacmanAgent:
             return reward
         progress = int((info.collected_pellets / info.total_pellets) * 5)
         if self.score - prev_score == 10:
-            reward += 4
+            reward += 4 
         if self.score - prev_score == 50:
-            reward += 5
+            reward += 5 
         if self.score - prev_score >= 200:
-            reward += 3
+            reward += 1
         if hit_ghost:
             reward -= 10
         if info.invalid_move and invalid_move:
-            reward -= 1
-        if info.invalid_move and self.last_state.stopped:
-            reward -= 1
+            reward -= 3
         reward -= 1
         return reward
 
@@ -350,12 +348,12 @@ class PacmanAgent:
         random_action = random.choice([0, 1, 2, 3])
         obs, self.score, done, info = self.game.step(random_action)
         # state = self.process_state(obs)
-        tensor = [torch.from_numpy(arr).float().to(device) for arr in info.state]
-        state = torch.stack(tensor, dim=0).unsqueeze(0)
-        # for i in range(6):
-        #     obs, self.score, done, info = self.game.step(random_action)
-        #     self.buffer.append(info.frame)
-        # state = self.process_state(self.buffer)
+        # tensor = [torch.from_numpy(arr).float().to(device) for arr in info.state]
+        # state = torch.stack(tensor, dim=0).unsqueeze(0)
+        for i in range(6):
+            obs, self.score, done, info = self.game.step(random_action)
+            self.buffer.append(info.frame)
+        state = self.process_state(self.buffer)
         last_score = 0
         lives = 3
         reward_total = 0
@@ -363,13 +361,13 @@ class PacmanAgent:
             prev = info.state
             action = self.act(state)
             action_t = action.item()
-            for i in range(3):
+            for i in range(4):
                 if not done:
                     obs, self.score, done, info = self.game.step(action_t)
                     if lives != info.lives:
                         break
 
-            # self.buffer.append(info.frame)
+            self.buffer.append(info.frame)
             hit_ghost = False
             if lives != info.lives:
                 # self.write_matrix(self.buffer)
@@ -378,9 +376,9 @@ class PacmanAgent:
                 if not done:
                     for i in range(3):
                         _, _, _, _ = self.game.step(action_t)
-            tensor = [torch.from_numpy(arr).float().to(device) for arr in info.state]
-            next_state = torch.stack(tensor, dim=0).unsqueeze(0)
-            # next_state = self.process_state(self.buffer)
+            # tensor = [torch.from_numpy(arr).float().to(device) for arr in info.state]
+            # next_state = torch.stack(tensor, dim=0).unsqueeze(0)
+            next_state = self.process_state(self.buffer)
 
             reward_ = self.get_reward(
                 done, lives, hit_ghost, action_t, last_score, info
@@ -410,7 +408,7 @@ class PacmanAgent:
                 )
                 self.log()
                 self.rewards.append(self.score)
-                self.plot_rewards(items=self.rewards, avg=50)
+                self.plot_rewards(items=self.rewards, avg=50, name="dueling_dqn")
                 # self.plot_rewards(items = self.losses,label="losses",name="losses.png", avg=50)
                 time.sleep(1)
                 self.game.restart()

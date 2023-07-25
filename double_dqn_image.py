@@ -113,27 +113,15 @@ class PacmanAgent:
             else:
                 reward = -10
             return reward
-        progress = info.collected_pellets / info.total_pellets
-        self.progress_reward = int(progress * 4)
+        progress = int((info.collected_pellets / info.total_pellets) * 5)
         if self.score - prev_score == 10 or self.score - prev_score == 50:
-            reward += 5 + self.progress_reward
-            if self.score - prev_score == 50:
-                reward += 1
-        elif self.score - prev_score >= 200:
-            print("ate ghost", self.progress_reward)
-            reward += 2
-        elif self.score - prev_score > 0 and self.score - prev_score < 200:
-            print("anomally", self.score - prev_score)
+            reward += 4 + progress
+        if self.score - prev_score >= 200:
             reward += 1
         if hit_ghost:
-            reward -= 8
-        if info.invalid_move and info.stopped:
-            reward -= 4
-        if not info.invalid_move and self.prev_info.stopped:
-            print("leaving", ACTIONS[action])
-            reward += 2
-        if action == REVERSED[self.last_action] and not self.prev_info.invalid_move:
-            reward -= 1
+            reward -= 10
+        if info.invalid_move:
+            reward -= 3
         reward -= 1
         return reward
 
@@ -419,7 +407,7 @@ class PacmanAgent:
 
 if __name__ == "__main__":
     agent = PacmanAgent()
-    agent.load_model(name="400-147400", eval=False)
+    agent.load_model(name="700-220421", eval=False)
     # agent.episode = 0
     # agent.rewards = []
     while True:

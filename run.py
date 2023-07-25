@@ -338,7 +338,7 @@ class GameController(object):
 
         self.ghosts = GhostGroup(self.nodes.getStartTempNode(), self.pacman)
 
-        self.ghosts.blinky.initialNode(self.nodes.getNodeFromTiles(2 + 11.5, 3 + 14))
+        self.ghosts.blinky.initialNode(self.nodes.getNodeFromTiles(2 + 11.5, 0 + 14))
         self.ghosts.pinky.initialNode(self.nodes.getNodeFromTiles(2 + 11.5, 3 + 14))
         self.ghosts.inky.initialNode(self.nodes.getNodeFromTiles(0 + 11.5, 3 + 14))
         self.ghosts.clyde.initialNode(self.nodes.getNodeFromTiles(4 + 11.5, 3 + 14))
@@ -420,13 +420,14 @@ class GameController(object):
                 return 7
             case -2:
                 return 8
+
     def update(self):  # remove time later !
         delta_t = self.clock.tick(120) / 1000.0
         if self.counter < 19:  # spped of eating my pacman
             self.counter += 1
         else:
             self.counter = 0
-        self.pacman.update(delta_t)  # remove delta_t?
+        self.ghosts.update(delta_t)
         self.pellets.update(delta_t)
         self.checkEvents()
         self.eatDots()
@@ -441,10 +442,12 @@ class GameController(object):
         if self.teleport is not None:
             self.teleport.update(delta_t)
         self.gettingTeleport()
-        self.ghosts.update(delta_t)
         self.checkGhostEvents()
+        self.pacman.update(delta_t)  # remove delta_t?
         self.render()
-        self.get_frame()
+        frame = self.get_frame()
+        if minDistance(frame, 5, -6) < 10:
+            print(minDistance(frame, 5, -6))
         # print(self.level, "level")
         # print(self.ghosts.blinky.mode.current_mode,self.ghosts.inky.mode.current_mode,self.ghosts.pinky.mode.current_mode,self.ghosts.clyde.mode.current_mode)
         # print(self.pacman.position==game.ghosts.blinky.pacman.position,game.pacman.alive)
@@ -516,7 +519,7 @@ class GameController(object):
             self.counter += 1
         else:
             self.counter = 0
-        self.pacman.update(delta_t, action)
+        self.ghosts.update(delta_t)
         self.pellets.update(delta_t)
         self.checkEvents()
         self.eatDots()
@@ -531,8 +534,9 @@ class GameController(object):
         if self.teleport is not None:
             self.teleport.update(delta_t)
         self.gettingTeleport()
-        self.ghosts.update(delta_t)
         self.checkGhostEvents()
+        self.pacman.update(delta_t, action)
+
         self.render()
         if lives == self.lives:
             info.frame = self.get_frame()
@@ -557,9 +561,9 @@ class GameController(object):
         if dot:
             # eatdot_sound.play()
             self.pellets.numEaten += 1
-            if self.pellets.numEaten == 20:
+            if self.pellets.numEaten == 30:
                 self.ghosts.inky.startNode.allowAccess(right, self.ghosts.inky)
-            if self.pellets.numEaten == 50:
+            if self.pellets.numEaten == 70:
                 self.ghosts.clyde.startNode.allowAccess(left, self.ghosts.clyde)
             self.updateScore(dot.points)
             self.pellets.pelletList.remove(dot)

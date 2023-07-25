@@ -49,7 +49,7 @@ class Award(object):
         self.name = None
         self.color = None
         self.radius = int(8 * cellw / 16)
-        self.collideRadius = int(4 * cellh / 16)
+        self.collision_distance = int(4 * cellh / 16)
         self.lifespan = 6
         self.timer = 0
         self.destroy = False
